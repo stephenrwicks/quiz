@@ -343,8 +343,8 @@ const getResults = (questions) => {
         page.style.padding = '30px';
     }
     const main = document.createElement('main');
-    main.style.display = 'grid';
-    main.style.gridTemplateColumns = '1fr 1fr 1fr';
+    main.style.display = 'flex';
+    main.style.flexFlow = 'row wrap';
     main.style.gap = '40px';
     main.append(...pages);
     return main;

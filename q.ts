@@ -395,7 +395,6 @@ const setup = () => {
     const buttonDiv = document.createElement('div');
     buttonDiv.style.display = 'flex';
     buttonDiv.append(addQuestionButton, saveQuizButton);
-    //buttonDiv.style.gridColumn = '1/-1';
 
     const updateButtonVisibility = (isEditing: boolean, current: QuestionForm) => {
         addQuestionButton.disabled = questionForms.length >= 10;
@@ -429,8 +428,8 @@ const getResults = (questions: Question[]) => {
         page.style.padding = '30px';
     }
     const main = document.createElement('main');
-    main.style.display = 'grid';
-    main.style.gridTemplateColumns = '1fr 1fr 1fr';
+    main.style.display = 'flex';
+    main.style.flexFlow = 'row wrap';
     main.style.gap = '40px';
     main.append(...pages);
     return main;
