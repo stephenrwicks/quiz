@@ -168,20 +168,6 @@ const game = (questions: Question[]) => {
     return main;
 }
 
-
-const demoQuestions: Question[] = [
-    {
-        questionText: 'console.log(-!!(()=>{})()); ',
-        options: ['true', 'false', 'SyntaxError', 'None of the above'],
-        correctIndex: 3,
-    },
-    {
-        questionText: 'console.log(!!(()=>{})());',
-        options: ['true', 'false', 'SyntaxError', 'None of the above'],
-        correctIndex: 1,
-    }
-];
-
 type AnswerInput = {
     div: HTMLDivElement;
     deleteButton: HTMLButtonElement;
@@ -431,7 +417,6 @@ const fromBase64 = (str: string): Question[] => JSON.parse(new TextDecoder().dec
 
 const base64String = window.location.search.slice(1);
 
-//document.body.replaceChildren(game(demoQuestions));
 if (base64String) {
     try {
         const questions = fromBase64(base64String);

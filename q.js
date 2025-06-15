@@ -137,18 +137,6 @@ const game = (questions) => {
     main.append(scoreDiv, topDiv, formDiv, buttonDiv);
     return main;
 };
-const demoQuestions = [
-    {
-        questionText: 'console.log(-!!(()=>{})()); ',
-        options: ['true', 'false', 'SyntaxError', 'None of the above'],
-        correctIndex: 3,
-    },
-    {
-        questionText: 'console.log(!!(()=>{})());',
-        options: ['true', 'false', 'SyntaxError', 'None of the above'],
-        correctIndex: 1,
-    }
-];
 const answerInput = (deleteSelf, radioName) => {
     const div = document.createElement('div');
     div.style.display = 'flex';
