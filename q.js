@@ -3,6 +3,7 @@ document.body.style.display = 'grid';
 document.body.style.placeItems = 'center';
 document.body.style.height = '100vh';
 document.body.style.margin = '0px';
+document.body.style.padding = '3vh';
 const radio = (text) => {
     const label = document.createElement('label');
     label.style.display = 'flex';
@@ -33,6 +34,7 @@ const radio = (text) => {
     };
 };
 const page = (question) => {
+    const isResult = typeof question.result === 'number';
     const form = document.createElement('form');
     form.style.display = 'grid';
     form.style.rowGap = '10px';
@@ -40,41 +42,54 @@ const page = (question) => {
     const fieldset = document.createElement('fieldset');
     fieldset.style.display = 'grid';
     fieldset.style.rowGap = '10px';
-    fieldset.style.justifyContent = 'center';
-    fieldset.style.border = '0px';
+    fieldset.style.border = '1px solid #ccc';
+    fieldset.style.padding = '20px';
+    fieldset.disabled = isResult;
     const radios = question.options.map(text => radio(text));
     const questionDiv = document.createElement('div');
     questionDiv.textContent = question.questionText;
     questionDiv.style.width = 'fit-content';
     questionDiv.style.placeSelf = 'center';
+    questionDiv.style.fontWeight = 'bold';
     const submitButton = document.createElement('button');
     submitButton.type = 'submit';
     submitButton.textContent = 'I think I am right';
     submitButton.style.marginTop = '20px';
+    const showAsResult = (selectedRadio, correctRadio) => {
+        for (const item of radios)
+            item.clear();
+        fieldset.disabled = true;
+        correctRadio.label.style.outline = '1px solid green';
+        if (selectedRadio !== correctRadio)
+            selectedRadio.label.style.outline = '1px solid red';
+        submitButton.remove();
+    };
     form.append(questionDiv, fieldset);
-    fieldset.append(...radios.map(r => r.label), submitButton);
+    fieldset.append(...radios.map(r => r.label));
+    if (isResult) {
+        const selectedRadio = radios[question.result];
+        const correctRadio = radios[question.correctIndex];
+        showAsResult(selectedRadio, correctRadio);
+    }
+    else {
+        form.append(submitButton);
+    }
     const resolveSubmission = new Promise(resolve => {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
+            const correctRadio = radios[question.correctIndex];
             const selectedRadio = radios.find(radio => radio.input.checked);
             if (!selectedRadio)
                 return;
-            const correctRadio = radios[question.correctIndex];
-            const isCorrect = selectedRadio === correctRadio;
-            correctRadio.label.style.outline = '1px solid green';
-            if (!isCorrect)
-                selectedRadio.label.style.outline = '1px solid red';
-            fieldset.disabled = true;
-            for (const item of radios)
-                item.clear();
-            submitButton.style.visibility = 'hidden';
-            resolve(isCorrect);
+            showAsResult(selectedRadio, correctRadio);
+            question.result = radios.findIndex(radio => radio === selectedRadio);
+            resolve(selectedRadio === correctRadio);
         });
     });
     return {
         element: form,
         resolveSubmission,
-        isComplete: false
+        isResult
     };
 };
 const game = (questions) => {
@@ -103,8 +118,10 @@ const game = (questions) => {
     const nextButton = document.createElement('button');
     nextButton.type = 'button';
     nextButton.addEventListener('click', () => {
-        if (currentPage === questions.length - 1)
+        if (currentPage === questions.length - 1) {
+            showUrl(createUrl(questions), main);
             return;
+        }
         currentPage++;
         render();
     });
@@ -125,10 +142,10 @@ const game = (questions) => {
         nextButton.style.visibility = 'hidden';
         page.resolveSubmission.then(isCorrect => {
             nextButton.style.visibility = '';
-            nextButton.textContent = currentPage === questions.length - 1 ? 'Finish' : 'Next';
-            if (!page.isComplete && isCorrect)
+            nextButton.textContent = currentPage === questions.length - 1 ? 'Share Results' : 'Next';
+            if (!page.isResult && isCorrect)
                 score++;
-            page.isComplete = true;
+            page.isResult = true;
             scoreDiv.textContent = `Score: ${score}`;
         });
         topDiv.textContent = `Question ${currentPage + 1} of ${questions.length}`;
@@ -171,14 +188,14 @@ const answerInput = (deleteSelf, radioName) => {
     };
     return obj;
 };
-const questionForm = (deleteSelf, updateIsEditing) => {
+const questionForm = (deleteSelf, updateButtonVisibility) => {
     const form = document.createElement('form');
-    form.style.boxShadow = '0px 0px 3px 1px #ccc';
+    form.style.border = '1px solid #ccc';
     form.style.padding = '15px';
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         fieldset.disabled = true;
-        updateIsEditing(false);
+        updateButtonVisibility(false, obj);
         buttonDiv.replaceChildren(editButton);
     });
     const fieldset = document.createElement('fieldset');
@@ -225,7 +242,7 @@ const questionForm = (deleteSelf, updateIsEditing) => {
     deleteQuestionButton.textContent = 'Delete Question';
     deleteQuestionButton.addEventListener('click', () => {
         deleteSelf(obj);
-        updateIsEditing(false);
+        updateButtonVisibility(false, obj);
     });
     const addAnswerButton = document.createElement('button');
     addAnswerButton.type = 'button';
@@ -240,7 +257,7 @@ const questionForm = (deleteSelf, updateIsEditing) => {
     editButton.addEventListener('click', () => {
         fieldset.disabled = false;
         buttonDiv.replaceChildren(deleteQuestionButton, addAnswerButton, okButton);
-        updateIsEditing(true, obj);
+        updateButtonVisibility(true, obj);
     });
     fieldset.append(questionTextInput);
     addAnswer();
@@ -259,17 +276,19 @@ const questionForm = (deleteSelf, updateIsEditing) => {
             };
         }
     };
-    updateIsEditing(true, obj);
+    updateButtonVisibility(true, obj);
     return obj;
 };
 const setup = () => {
     const main = document.createElement('main');
     main.style.padding = '10px';
+    main.style.display = 'grid';
+    main.style.gap = '30px';
     const questionForms = [];
     const addQuestion = () => {
         if (questionForms.length >= 10)
             return;
-        const q = questionForm(removeQuestion, updateIsEditing);
+        const q = questionForm(removeQuestion, updateButtonVisibility);
         if (questionForms.length)
             questionForms[questionForms.length - 1].form.after(q.form);
         else
@@ -291,52 +310,71 @@ const setup = () => {
     saveQuizButton.style.visibility = 'hidden';
     saveQuizButton.addEventListener('click', () => {
         const questions = questionForms.map(q => q.value);
-        const url = createUrl(questions);
-        showUrl(url);
+        showUrl(createUrl(questions), main);
     });
     const buttonDiv = document.createElement('div');
     buttonDiv.style.display = 'flex';
     buttonDiv.append(addQuestionButton, saveQuizButton);
-    const updateIsEditing = (isEditing, current) => {
+    const updateButtonVisibility = (isEditing, current) => {
         addQuestionButton.disabled = questionForms.length >= 10;
-        buttonDiv.style.visibility = isEditing ? 'hidden' : '';
+        buttonDiv.style.display = isEditing ? 'none' : 'flex';
         for (const form of questionForms.filter(f => f !== current))
             form.buttonDiv.style.visibility = isEditing ? 'hidden' : '';
-        saveQuizButton.style.visibility = questionForms.length && !isEditing ? 'visible' : 'hidden';
+        saveQuizButton.style.visibility = questionForms.length ? 'visible' : 'hidden';
     };
     main.append(buttonDiv);
-    const showUrl = (url) => {
-        const pre = document.createElement('pre');
-        const a = document.createElement('a');
-        a.href = url;
-        a.textContent = url;
-        pre.append(a);
-        pre.style.width = '500px';
-        pre.style.whiteSpace = 'pre-wrap';
-        pre.style.wordBreak = 'break-word';
-        main.replaceChildren(pre);
-    };
+    return main;
+};
+const showUrl = (url, main) => {
+    const pre = document.createElement('pre');
+    const a = document.createElement('a');
+    a.href = url;
+    a.textContent = url;
+    pre.append(a);
+    pre.style.width = '500px';
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.wordBreak = 'break-word';
+    main.replaceChildren(pre);
+};
+const getResults = (questions) => {
+    const pages = questions.map(q => page(q)).map(p => p.element);
+    for (const page of pages) {
+        page.style.boxShadow = '0px 0px 3px 1px #eee';
+        page.style.padding = '30px';
+    }
+    const main = document.createElement('main');
+    main.style.display = 'grid';
+    main.style.gridTemplateColumns = '1fr 1fr 1fr';
+    main.style.gap = '40px';
+    main.append(...pages);
     return main;
 };
 const createUrl = (questions) => {
     const url = new URL('/quiz/index.html', window.location.origin);
-    url.search = `?${toBase64(questions)}`;
+    url.search = `?${convertQuestionsToBase64(questions)}`;
     return url.toString();
 };
-const shortenQuestions = (questions) => {
-};
-const toBase64 = (questions) => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(questions))));
-const fromBase64 = (str) => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(str), c => c.charCodeAt(0))));
+const convertQuestionsToBase64 = (questions) => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(questions))));
+const getQuestionsFromBase64 = (str) => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(str), c => c.charCodeAt(0))));
+const startGame = (questions) => document.body.replaceChildren(game(questions));
+const startSetup = () => document.body.replaceChildren(setup());
+const showResults = (questions) => document.body.replaceChildren(getResults(questions));
 const base64String = window.location.search.slice(1);
 if (base64String) {
     try {
-        const questions = fromBase64(base64String);
-        document.body.replaceChildren(game(questions));
+        const questions = getQuestionsFromBase64(base64String);
+        if (typeof questions[0].result === 'number') {
+            showResults(questions);
+            console.log(questions);
+        }
+        else {
+            startGame(questions);
+        }
     }
     catch {
-        document.body.replaceChildren(setup());
+        startSetup();
     }
 }
 else {
-    document.body.replaceChildren(setup());
+    startSetup();
 }
