@@ -62,7 +62,8 @@ const page = (question) => {
         correctRadio.label.style.outline = '1px solid green';
         if (selectedRadio !== correctRadio)
             selectedRadio.label.style.outline = '1px solid red';
-        submitButton.remove();
+        submitButton.style.visibility = 'hidden';
+        submitButton.disabled = true;
     };
     form.append(questionDiv, fieldset);
     fieldset.append(...radios.map(r => r.label));
